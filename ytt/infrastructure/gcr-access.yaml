@@ -1,0 +1,42 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:template", "template")
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMServiceAccount
+metadata:
+  name: #@ data.values.foundationName + "-gcr-access"
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  displayName: #@ "GCR Access for " + data.values.foundationName
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMServiceAccountKey
+metadata:
+  name: #@ data.values.foundationName + "-gcr-access"
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  publicKeyType: TYPE_X509_PEM_FILE
+  keyAlgorithm: KEY_ALG_RSA_2048
+  privateKeyType: TYPE_GOOGLE_CREDENTIALS_FILE
+  serviceAccountRef:
+    name: #@ data.values.foundationName + "-gcr-access"
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: #@ data.values.foundationName + "-gcr-access"
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  member: #@ "serviceAccount:" + data.values.foundationName + "-gcr-access@" + data.values.gcp.projectID + ".iam.gserviceaccount.com"
+  role: roles/storage.admin
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: #@ "projects/" + data.values.gcp.projectID
+---

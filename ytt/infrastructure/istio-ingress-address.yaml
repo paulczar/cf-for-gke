@@ -1,0 +1,15 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:template", "template")
+---
+apiVersion: compute.cnrm.cloud.google.com/v1beta1
+kind: ComputeAddress
+metadata:
+  name: #@ data.values.foundationName + "-ingress"
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  description: An Ingress Address for cf4k8s
+  location: #@ data.values.gcp.region
+  addressType: EXTERNAL
+  networkTier: PREMIUM

@@ -1,0 +1,13 @@
+---
+kind: Config
+apiVersion: kapp.k14s.io/v1alpha1
+
+rebaseRules:
+#! k8s automatically adds spec.selector, so copy it from cluster side
+- path: [spec, address]
+  type: copy
+  sources: [new, existing]
+  resourceMatchers:
+  - apiVersionKindMatcher:
+      apiVersion: compute.cnrm.cloud.google.com/v1beta1
+      kind: ComputeAddress

@@ -1,0 +1,10 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:template", "template")
+
+#@overlay/match by=overlay.subset({"kind": "ServiceAccount", "metadata":{"name": "cnrm-controller-manager", "namespace": "cnrm-system"}})
+---
+metadata:
+  #@overlay/replace
+  annotations:
+    iam.gke.io/gcp-service-account: #@ "cnrm-system@" + data.values.gcp.projectID +".iam.gserviceaccount.com"

@@ -1,0 +1,141 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:template", "template")
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMServiceAccount
+metadata:
+  name: #@ data.values.foundationName + "-db-proxy"
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  displayName: #@ data.values.foundationName + "-db-proxy workload identity"
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicy
+metadata:
+  name: #@ data.values.foundationName + "-db-proxy"
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  resourceRef:
+    apiVersion: iam.cnrm.cloud.google.com/v1beta1
+    kind: IAMServiceAccount
+    name: #@ data.values.foundationName + "-db-proxy"
+  bindings:
+    - role: roles/iam.workloadIdentityUser
+      members:
+        - #@ "serviceAccount:" + data.values.gcp.projectID + ".svc.id.goog[cf-db/cf-db-postgresql]"
+---
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPolicyMember
+metadata:
+  name: #@ data.values.foundationName + "-db-proxy"
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  member: #@ "serviceAccount:" + data.values.foundationName + "-db-proxy@" + data.values.gcp.projectID + ".iam.gserviceaccount.com"
+  role: roles/cloudsql.client
+  resourceRef:
+    apiVersion: resourcemanager.cnrm.cloud.google.com/v1beta1
+    kind: Project
+    external: #@ "projects/" + data.values.gcp.projectID
+---
+apiVersion: sql.cnrm.cloud.google.com/v1beta1
+kind: SQLInstance
+metadata:
+  name: #@ data.values.foundationName + "-db" + data.values.dbSuffix
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  region: us-central1
+  databaseVersion: POSTGRES_9_6
+  settings:
+    tier: db-custom-1-3840
+    availabilityType: REGIONAL
+    ipConfiguration:
+      ipv4Enabled: false
+      requireSsl: false
+      privateNetworkRef:
+        external: default
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cf-db
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cf-db-postgresql
+  namespace: cf-db
+  annotations:
+    iam.gke.io/gcp-service-account: #@ data.values.foundationName + "-db-proxy@" + data.values.gcp.projectID +".iam.gserviceaccount.com"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cf-db-postgresql
+  namespace: cf-db
+spec:
+  selector:
+    matchLabels:
+      app: cf-db-postgresql
+  template:
+    metadata:
+      labels:
+        app: cf-db-postgresql
+    spec:
+      serviceAccountName: cf-db-postgresql
+      containers:
+        - name: cloud-sql-proxy
+          image: gcr.io/cloudsql-docker/gce-proxy:1.17
+          command:
+          - "/cloud_sql_proxy"
+          - "-ip_address_types=PRIVATE"
+          - #@ "-instances=" + data.values.gcp.projectID + ":us-central1:" + data.values.foundationName + "-db" + data.values.dbSuffix + "=tcp:0.0.0.0:5432"
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cfdb-passwords
+  namespace: infrastructure
+stringData:
+  postgres_password: #@ data.values.cf_db.admin_password
+---
+apiVersion: sql.cnrm.cloud.google.com/v1beta1
+kind: SQLUser
+metadata:
+  name: postgres
+  namespace: infrastructure
+  annotations:
+    cnrm.cloud.google.com/project-id: #@ data.values.gcp.projectID
+spec:
+  instanceRef:
+    name: #@ data.values.foundationName + "-db" + data.values.dbSuffix
+  password:
+    valueFrom:
+      secretKeyRef:
+        name: cfdb-passwords
+        key: postgres_password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cf-db-postgresql
+  namespace: cf-db
+spec:
+  ports:
+  - port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app: cf-db-postgresql
+  type: ClusterIP

@@ -1,0 +1,10 @@
+#@ load("@ytt:overlay", "overlay")
+
+#@overlay/match by=overlay.subset({"kind": "StatefulSet","metadata":{"namespace":"cf-db"}})
+#@overlay/remove
+---
+#@overlay/match by=overlay.subset({"kind": "Service","metadata":{"namespace":"cf-db"}}),expects="1+"
+#@overlay/remove
+---
+#@overlay/match by=overlay.subset({"kind": "Namespace","metadata":{"name":"cf-db"}})
+#@overlay/remove

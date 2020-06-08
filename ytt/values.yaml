@@ -1,0 +1,10 @@
+#@data/values
+---
+foundationName: "cf4k8s"
+
+gcp:
+  projectID: "your-gcp-project-id-here"
+  region: us-central1
+  zone: us-central1-a
+
+dbSuffix: ""
