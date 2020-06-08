@@ -16,6 +16,7 @@ Install bosh cli:
 ```bash
 wget -O ~/bin/bosh https://github.com/cloudfoundry/bosh-cli/releases/download/v6.2.1/bosh-cli-6.2.1-linux-amd64
 chmod +x ~/bin/bosh
+```
 
 ## Prepare Local Environment
 
