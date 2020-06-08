@@ -19,16 +19,16 @@ chmod +x ~/bin/bosh
 
 ## Prepare Local Environment
 
-Clone cf4k8s-extras:
+Clone cf-for-gke:
 
 ```
-git clone ...
+git clone https://github.com/paulczar/cf-for-gke.git cf4k8s-extras
 ```
 
-Clone cf4k8s:
+Clone cf-for-k8s:
 
 ```bash
-git clone https://github.com/cloudfoundry/cf-for-k8s.git
+git clone --branch gcp-blob https://github.com/paulczar/cf-for-k8s
 ```
 
 Create a spot for customizations/values for a `dev` instance:
